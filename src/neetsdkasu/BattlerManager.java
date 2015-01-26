@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Random;
 
 import neetsdkasu.*;
 
@@ -12,6 +13,8 @@ public class BattlerManager
 {
 	Battlers[] idle = new Battlers[3];
 	ArrayList<Battlers> attackers = new ArrayList<>();
+	Random rand = new Random();
+	
 	
 	public Position target = null;
 	
@@ -20,6 +23,7 @@ public class BattlerManager
 		target = null;
 		Arrays.fill(idle, null);
 		attackers.clear();
+		rand.setSeed(rand.nextLong());
 	}
 	
 	public void setTarget(Position target)
@@ -51,15 +55,18 @@ public class BattlerManager
 	
 	public void getRequests(ArrayList<Request> requests)
 	{
-		if (target == null)
-		{
-			return;
-		}
 		for (int i = 0; i < idle.length; i++)
 		{
 			if (idle[i] == null)
 			{
-				idle[i] = new Battlers(target);
+				if (target == null)
+				{
+					idle[i] = new Battlers(new Position(99 - rand.nextInt(40), 99 - rand.nextInt(40)));
+				}
+				else
+				{
+					idle[i] = new Battlers(target);
+				}
 			}
 			for (int j = idle[i].needBattlers(); j > 0; j--)
 			{
@@ -79,11 +86,12 @@ public class BattlerManager
 			if (idle[i].needBattlers() == 0)
 			{
 				attackers.add(idle[i]);
-				idle[i] = new Battlers(target);
+				idle[i] = null;
 			}
 		}
 		for (Battlers battlers : attackers)
 		{
+			battlers.setTarget(target);
 			battlers.compute(units);
 		}
 	}

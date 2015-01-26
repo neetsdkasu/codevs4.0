@@ -11,11 +11,12 @@ import neetsdkasu.*;
 
 public class Stage
 {
-	int number = 0;
+	int number = -1;
 	int turn = 0;
 	int resource_count = 0;
 	int unit_count = 0;
 	int enemy_count = 0;
+	int all_workers = 0;
 	
 	HashMap<Position, DigManager> resources = new HashMap<>();
 	HashMap<Unit, Unit> workers = new HashMap<>();
@@ -28,6 +29,7 @@ public class Stage
 	BaseManager bases = new BaseManager();
 	BattlerManager battlersmgr = new BattlerManager();
 	HashMap<Unit, Unit> battlers = new HashMap<>();
+	GuardManager guard = new GuardManager();
 	
 	Unit enemy_castle = null;
 	
@@ -55,7 +57,9 @@ public class Stage
 		battler_makers.clear();
 		Arrays.fill(make_requests, 0);
 		villages.nextTurn();
+		battlers.clear();
 		bases.nextTurn();
+		all_workers = 0;
 	}
 	
 	public void addUnit(Unit unit)
@@ -76,6 +80,7 @@ public class Stage
 				Position.setMirror(unit.position.getAbsoluteX() > 50 && unit.position.getAbsoluteY() > 50);
 			}
 			castle = unit;
+			guard.setCastle(unit.position);
 			worker_makers.put(unit, unit);
 			break;
 		case VILLAGE:
@@ -123,6 +128,8 @@ public class Stage
 		
 		battlersmgr.getRequests(assign_requests);
 		
+		guard.getRequests(assign_requests);
+		
 		Collections.sort(assign_requests);
 		
 	}
@@ -130,7 +137,6 @@ public class Stage
 	void assignUnits()
 	{
 		Iterator<Unit> wkey = workers.keySet().iterator();
-		Iterator<Unit> bkey = battlers.keySet().iterator();
 		
 		for (Iterator<Request> it = assign_requests.iterator(); it.hasNext(); )
 		{
@@ -162,19 +168,63 @@ public class Stage
 				}
 				make_requests[Type.WORKER.ordinal()]++;
 			}
+			
 			if ((request.needtypes & (1 << Type.ASSASSIN.ordinal())) > 0)
 			{
+				Iterator<Unit> bkey = battlers.keySet().iterator();
 				if (bkey.hasNext())
 				{
-					request.assign(battlers.get(bkey.next()));
-					bkey.remove();
-					it.remove();
-					continue;
+					Unit unit = battlers.get(bkey.next());
+					while (unit.type != Type.ASSASSIN)
+					{
+						if (bkey.hasNext())
+						{
+							unit = battlers.get(bkey.next());
+						}
+						else
+						{
+							unit = null;
+							break;
+						}
+					}
+					if (unit != null)
+					{
+						request.assign(unit);
+						bkey.remove();
+						it.remove();
+						continue;
+					}
 				}
-				else
+				make_requests[Type.ASSASSIN.ordinal()]++;
+			}
+			
+			if ((request.needtypes & (1 << Type.KNIGHT.ordinal())) > 0)
+			{
+				Iterator<Unit> bkey = battlers.keySet().iterator();
+				if (bkey.hasNext())
 				{
-					make_requests[Type.ASSASSIN.ordinal()]++;
+					Unit unit = battlers.get(bkey.next());
+					while (unit.type != Type.KNIGHT)
+					{
+						if (bkey.hasNext())
+						{
+							unit = battlers.get(bkey.next());
+						}
+						else
+						{
+							unit = null;
+							break;
+						}
+					}
+					if (unit != null)
+					{
+						request.assign(unit);
+						bkey.remove();
+						it.remove();
+						continue;
+					}
 				}
+				make_requests[Type.KNIGHT.ordinal()]++;
 			}
 		}
 	}
@@ -190,23 +240,25 @@ public class Stage
 			}
 			resource_count -= 60;
 			Unit unit = battler_makers.get(bmkey.next());
+			bmkey.remove();
 			unit.command = Command.ASSASSIN;
 			performers.add(unit);
 		}
-		
-		Iterator<Unit> wmkey = worker_makers.keySet().iterator();
-		for (int i = 0; i < make_requests[Type.WORKER.ordinal()]; i++)
+
+		bmkey = battler_makers.keySet().iterator();
+		for (int i = 0; i < make_requests[Type.KNIGHT.ordinal()]; i++)
 		{
-			if (resource_count < 40 || !wmkey.hasNext())
+			if (resource_count < 20 || !bmkey.hasNext())
 			{
 				break;
 			}
-			resource_count -= 40;
-			Unit unit = worker_makers.get(wmkey.next());
-			unit.command = Command.WORKER;
+			resource_count -= 20;
+			Unit unit = battler_makers.get(bmkey.next());
+			bmkey.remove();
+			unit.command = Command.KNIGHT;
 			performers.add(unit);
 		}
-		
+
 		Iterator<Unit> wkey = workers.keySet().iterator();
 
 		while (wkey.hasNext() && resource_count > 500)
@@ -225,6 +277,22 @@ public class Stage
 			unit.command = Command.BASE;
 			performers.add(unit);
 		}
+				
+		Iterator<Unit> wmkey = worker_makers.keySet().iterator();
+		for (int i = 0; i < make_requests[Type.WORKER.ordinal()]; i++)
+		{
+			if (resource_count < 40 || !wmkey.hasNext())
+			{
+				break;
+			}
+			resource_count -= 40;
+			Unit unit = worker_makers.get(wmkey.next());
+			wmkey.remove();
+			unit.command = Command.WORKER;
+			performers.add(unit);
+		}
+		
+
 		
 		wkey = workers.keySet().iterator();
 		
@@ -240,6 +308,7 @@ public class Stage
 				continue;
 			}
 			resource_count -= 100;
+			wkey.remove();
 			unit.command = Command.VILLAGE;
 			performers.add(unit);
 		}
@@ -255,10 +324,14 @@ public class Stage
 		}
 		
 		battlersmgr.update(battlers);
+		
+		guard.update(battlers);
 	}
 	
 	public void compute()
 	{
+		all_workers = workers.size();
+		
 		update();
 		
 		hearAssignRequests();
@@ -275,6 +348,8 @@ public class Stage
 		}
 		
 		battlersmgr.compute(performers);
+		
+		guard.compute(performers);
 
 	}
 }

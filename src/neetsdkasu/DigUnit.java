@@ -43,7 +43,11 @@ public class DigUnit
 		{
 			return null;
 		}
-		int priority = (resource_position.getX() + resource_position.getY() < 100) ? 0 : 500;
+		int priority = (resource_position.getX() + resource_position.getY());
+		if (priority < 100)
+		{
+			priority /= 10;
+		}
 		return new Request(priority, 1 << Type.WORKER.ordinal()){
 			@Override
 			public void assign(Unit unit)

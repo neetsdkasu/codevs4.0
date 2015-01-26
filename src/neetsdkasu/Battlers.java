@@ -40,6 +40,14 @@ public class Battlers
 		}
 	}
 	
+	public void setTarget(Position target)
+	{
+		if (target != null)
+		{
+			this.target = target;
+		}
+	}
+	
 	public boolean isAlive()
 	{
 		return alive > 0;

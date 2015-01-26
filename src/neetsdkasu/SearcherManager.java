@@ -27,7 +27,7 @@ public class SearcherManager
 	{
 		for (SearcherUnit unit : member)
 		{
-			unit.reset();
+			unit.nextStage();
 		}
 	}
 	

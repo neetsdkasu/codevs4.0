@@ -40,10 +40,10 @@ public class SearcherUnit
 		current = first;
 	}
 	
-	public void reset()
+	public void nextStage()
 	{
 		current = first;
-		finished = true;
+		finished = false;
 		unit = null;
 	}
 	
