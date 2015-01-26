@@ -18,9 +18,12 @@ public class Unit
 	public Position position;
 	public Type type;
 	public Command command = Command.STAY;
+	public boolean assigned = false;
+	
 	public Unit()
 	{
 	}
+	
 	public Unit(int id, int y, int x, int hp, int type)
 	{
 		this.id = id;
@@ -28,7 +31,8 @@ public class Unit
 		this.hp = hp;
 		this.type = TYPES[type];
 	}
-	char getCommandChar()
+	
+	public char getCommandChar()
 	{
 		switch (command)
 		{
@@ -51,10 +55,26 @@ public class Unit
 			return '?';
 		}
 	}
+	
+	public void moveTo(Position to)
+	{
+		int diffX = to.getX() - position.getX();
+		int diffY = to.getY() - position.getY();
+		if (Math.abs(diffX) < Math.abs(diffY))
+		{
+			command = (diffY < 0) ? Command.UP : Command.DOWN;
+		}
+		else
+		{
+			command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
+		}
+	}
+	
 	@Override public int hashCode()
 	{
 		return id;
 	}
+	
 	@Override public boolean equals(Object o)
 	{
 		if (this == o) return true;

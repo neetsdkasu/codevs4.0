@@ -6,9 +6,9 @@
 @if exist %f% goto label2
 
 @copy _template_.java %f%
-@echo public class %~1 >> %f%
-@echo ^{ >> %f%
-@echo ^} >> %f%
+@echo public class %~1>> %f%
+@echo ^{>> %f%
+@echo ^}>> %f%
 
 @call ed.bat %f%
 

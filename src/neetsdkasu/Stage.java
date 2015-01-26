@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Collections;
 
 import neetsdkasu.*;
 
@@ -16,9 +17,19 @@ public class Stage
 	int unit_count = 0;
 	int enemy_count = 0;
 	
-	HashSet<Position> resources = new HashSet<>();
+	HashMap<Position, DigManager> resources = new HashMap<>();
 	HashMap<Unit, Unit> workers = new HashMap<>();
 	ArrayList<Unit> performers = new ArrayList<>();
+	ArrayList<Request> assign_requests = new ArrayList<>();
+	HashMap<Unit, Unit> worker_makers = new HashMap<>();
+	HashMap<Unit, Unit> battler_makers = new HashMap<>();
+	int[] make_requests = new int[7];
+	VillageManager villages = new VillageManager();
+	BaseManager bases = new BaseManager();
+	BattlerManager battlersmgr = new BattlerManager();
+	HashMap<Unit, Unit> battlers = new HashMap<>();
+	
+	Unit enemy_castle = null;
 	
 	SearcherManager searcher = new SearcherManager();
 	
@@ -28,8 +39,10 @@ public class Stage
 	{
 		this.number = number;
 		resources.clear();
-		searcher.reset();
+		searcher.nextStage();
+		battlersmgr.nextStage();
 		castle = null;
+		enemy_castle = null;
 	}
 	
 	public void nextTurn(int turn)
@@ -37,6 +50,12 @@ public class Stage
 		this.turn = turn;
 		workers.clear();
 		performers.clear();
+		assign_requests.clear();
+		worker_makers.clear();
+		battler_makers.clear();
+		Arrays.fill(make_requests, 0);
+		villages.nextTurn();
+		bases.nextTurn();
 	}
 	
 	public void addUnit(Unit unit)
@@ -46,25 +65,217 @@ public class Stage
 		case WORKER:
 			workers.put(unit, unit);
 			break;
+		case KNIGHT:
+		case FIGHTER:
+		case ASSASSIN:
+			battlers.put(unit, unit);
+			break;
 		case CASTLE:
 			if (castle == null)
 			{
 				Position.setMirror(unit.position.getAbsoluteX() > 50 && unit.position.getAbsoluteY() > 50);
 			}
 			castle = unit;
+			worker_makers.put(unit, unit);
+			break;
+		case VILLAGE:
+			villages.addVillage(unit);
+			worker_makers.put(unit, unit);
+			break;
+		case BASE:
+			bases.addBase(unit);
+			battler_makers.put(unit, unit);
 			break;
 		}
 	}
 	
-	public void compute()
+	public void addEnemy(Unit unit)
+	{
+		switch (unit.type)
+		{
+		case CASTLE:
+			if (enemy_castle == null)
+			{
+				enemy_castle = unit;
+				battlersmgr.setTarget(unit.position);
+			}
+			break;
+		}
+	}
+	
+	public void addResourcePosition(Position resource_position)
+	{
+		if (resources.containsKey(resource_position))
+		{
+			return;
+		}
+		resources.put(resource_position, new DigManager(resource_position));
+	}
+	
+	void hearAssignRequests()
+	{
+		searcher.getRequests(assign_requests);
+		
+		for (DigManager dig : resources.values())
+		{
+			dig.getRequests(assign_requests);
+		}
+		
+		battlersmgr.getRequests(assign_requests);
+		
+		Collections.sort(assign_requests);
+		
+	}
+	
+	void assignUnits()
+	{
+		Iterator<Unit> wkey = workers.keySet().iterator();
+		Iterator<Unit> bkey = battlers.keySet().iterator();
+		
+		for (Iterator<Request> it = assign_requests.iterator(); it.hasNext(); )
+		{
+			Request request = it.next();
+			if ((request.needtypes & (1 << Type.WORKER.ordinal())) > 0)
+			{
+				if (wkey.hasNext())
+				{
+					Unit unit = workers.get(wkey.next());
+					while (unit.assigned)
+					{
+						if (wkey.hasNext())
+						{
+							unit = workers.get(wkey.next());
+						}
+						else
+						{
+							unit = null;
+							break;
+						}
+					}
+					if (unit != null)
+					{
+						request.assign(unit);
+						wkey.remove();
+						it.remove();
+						continue;
+					}
+				}
+				make_requests[Type.WORKER.ordinal()]++;
+			}
+			if ((request.needtypes & (1 << Type.ASSASSIN.ordinal())) > 0)
+			{
+				if (bkey.hasNext())
+				{
+					request.assign(battlers.get(bkey.next()));
+					bkey.remove();
+					it.remove();
+					continue;
+				}
+				else
+				{
+					make_requests[Type.ASSASSIN.ordinal()]++;
+				}
+			}
+		}
+	}
+	
+	void assignMakeRequests()
+	{
+		Iterator<Unit> bmkey = battler_makers.keySet().iterator();
+		for (int i = 0; i < make_requests[Type.ASSASSIN.ordinal()]; i++)
+		{
+			if (resource_count < 60 || !bmkey.hasNext())
+			{
+				break;
+			}
+			resource_count -= 60;
+			Unit unit = battler_makers.get(bmkey.next());
+			unit.command = Command.ASSASSIN;
+			performers.add(unit);
+		}
+		
+		Iterator<Unit> wmkey = worker_makers.keySet().iterator();
+		for (int i = 0; i < make_requests[Type.WORKER.ordinal()]; i++)
+		{
+			if (resource_count < 40 || !wmkey.hasNext())
+			{
+				break;
+			}
+			resource_count -= 40;
+			Unit unit = worker_makers.get(wmkey.next());
+			unit.command = Command.WORKER;
+			performers.add(unit);
+		}
+		
+		Iterator<Unit> wkey = workers.keySet().iterator();
+
+		while (wkey.hasNext() && resource_count > 500)
+		{
+			if (bases.needBases() == 0)
+			{
+				break;
+			}
+			Unit unit = workers.get(wkey.next());
+			if (bases.needBasePosition(unit.position) == false)
+			{
+				continue;
+			}
+			wkey.remove();
+			resource_count -= 500;
+			unit.command = Command.BASE;
+			performers.add(unit);
+		}
+		
+		wkey = workers.keySet().iterator();
+		
+		while (wkey.hasNext() && resource_count > 100)
+		{
+			if (villages.needVillages() == 0)
+			{
+				break;
+			}
+			Unit unit = workers.get(wkey.next());
+			if (villages.needVillagePosition(unit.position) == false)
+			{
+				continue;
+			}
+			resource_count -= 100;
+			unit.command = Command.VILLAGE;
+			performers.add(unit);
+		}
+	}
+	
+	void update()
 	{
 		searcher.update(workers);
 		
-		int needs = Math.min(searcher.howManyNeedWorkers(), workers.size());
+		for (DigManager dig : resources.values())
+		{
+			dig.update(workers);
+		}
 		
-		searcher.assign(workers, needs);
+		battlersmgr.update(battlers);
+	}
+	
+	public void compute()
+	{
+		update();
+		
+		hearAssignRequests();
+		
+		assignUnits();
+		
+		assignMakeRequests();
 		
 		searcher.compute(performers);
+
+		for (DigManager dig : resources.values())
+		{
+			dig.compute(performers);
+		}
+		
+		battlersmgr.compute(performers);
+
 	}
 }
 

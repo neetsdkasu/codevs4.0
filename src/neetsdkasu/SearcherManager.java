@@ -23,7 +23,7 @@ public class SearcherManager
 		}
 	}
 	
-	public void reset()
+	public void nextStage()
 	{
 		for (SearcherUnit unit : member)
 		{
@@ -79,6 +79,18 @@ public class SearcherManager
 				it.remove();
 				break;
 			}
+		}
+	}
+	
+	public void getRequests(ArrayList<Request> requests)
+	{
+		for (SearcherUnit unit : member)
+		{
+			if (unit.isFinished() || !unit.isNoUnit())
+			{
+				continue;
+			}
+			requests.add(unit.getRequest());
 		}
 	}
 	

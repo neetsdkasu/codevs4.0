@@ -76,13 +76,13 @@ public class AI
 		stage.enemy_count = in.nextInt();
 		for (int i = 0; i < stage.enemy_count; i++)
 		{
-			new Unit(in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt());
+			stage.addEnemy(new Unit(in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt(), in.nextInt()));
 		}
 		
 		int resource_position_count = in.nextInt();
 		for (int i = 0; i < resource_position_count; i++)
 		{
-			stage.resources.add(new Position(in.nextInt(), in.nextInt()));
+			stage.addResourcePosition(new Position(in.nextInt(), in.nextInt(), true));
 		}
 		
 		in.next(); // END

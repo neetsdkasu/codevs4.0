@@ -97,6 +97,45 @@ public class SearcherUnit
 		return finished;
 	}
 	
+	public Request getRequest()
+	{
+		if (finished || unit != null)
+		{
+			return null;
+		}
+		int priority = 0;
+		int needtypes = (1 << Type.WORKER.ordinal()) | (1 << Type.KNIGHT.ordinal());
+		if (mirror)
+		{
+			if (current.getX() == goal.getX())
+			{
+				priority = 1000;
+			}
+			else if (current.getY() == third.getY())
+			{
+				priority = 500;
+			}
+		}
+		else
+		{
+			if (current.getY() == goal.getY())
+			{
+				priority = 1000;
+			}
+			else if (current.getX() == third.getX())
+			{
+				priority = 500;
+			}
+		}
+		return new Request(priority, needtypes){
+			@Override
+			public void assign(Unit unit)
+			{
+				setUnit(unit);
+			}
+		}; 
+	}
+	
 	public void compute(ArrayList<Unit> units)
 	{
 		if (finished || unit == null)
@@ -107,16 +146,7 @@ public class SearcherUnit
 		Position position = unit.position;
 		if (isCurrent() == false)
 		{
-			int diffX = current.getX() - position.getX();
-			int diffY = current.getY() - position.getY();
-			if (Math.abs(diffX) < Math.abs(diffY))
-			{
-				unit.command = (diffY < 0) ? Command.UP : Command.DOWN;
-			}
-			else
-			{
-				unit.command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
-			}
+			unit.moveTo(current);
 			return;
 		}
 		if (mirror)
