@@ -63,6 +63,7 @@ public class GuardManager
 					int diff = Math.abs(unit.position.getX() - castle.getX()) + Math.abs(unit.position.getY() - castle.getY());
 					if (diff == 1)
 					{
+						count++;
 						unit.moveTo(castle);
 						idle.add(unit);
 					}
