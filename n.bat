@@ -1,7 +1,7 @@
 @setlocal
 @if "%~1"=="" goto label1
 
-@set f=".\src\neetsdkasu\%~1.java"
+@set f=".\src\neetsdkasu\codevs4\%~1.java"
 
 @if exist %f% goto label2
 

@@ -1,4 +1,4 @@
-package neetsdkasu;
+package neetsdkasu.codevs4;
 
 
 public enum Type

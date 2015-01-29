@@ -1,1 +1,1 @@
-java -cp classes neetsdkasu.AI < sample.txt
+java -cp classes neetsdkasu.codevs4.AI < sample.txt
