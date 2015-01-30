@@ -58,7 +58,7 @@ public class Knights
 			{
 				int n = j + i * 5;
 				int x = j - 2;
-				targets[n] = target.move(y, x);
+				targets[24 - n] = target.move(y, x);
 			}
 		}
 		targets[0] = null;
@@ -114,6 +114,23 @@ public class Knights
 		Arrays.fill(targets, null);
 		target = null;
 		count = 0;
+	}
+	
+	public boolean reached()
+	{
+		List<Unit> list = members.get(12);
+		if (list == null)
+		{
+			return false;
+		}
+		for (Unit unit : list)
+		{
+			if (unit.position.equals(target))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public void getRequests(List<Request> requests, Set<Position> battler_maker_position)

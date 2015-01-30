@@ -45,7 +45,7 @@ public class DiggerManager
 		}
 	}
 	
-	public boolean assign(Unit unit)
+	public boolean assign(Unit unit, Map<Position, Integer> enemies_count)
 	{
 		if (member_count >= limit)
 		{
@@ -55,8 +55,12 @@ public class DiggerManager
 		int distance = Integer.MAX_VALUE;
 		for (Position position : members.keySet())
 		{
+			if (enemies_count.containsKey(position))
+			{
+				continue;
+			}
 			list = members.get(position);
-			if (list.size() >= 5)
+			if (list.size() > 0)
 			{
 				continue;
 			}

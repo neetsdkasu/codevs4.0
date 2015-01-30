@@ -52,14 +52,14 @@ public class ResourceSearcherManager
 	}
 	
 		
-	public void changeRoll(DiggerManager digger)
+	public void changeRoll(DiggerManager digger, Map<Position, Integer> enemies_count)
 	{
 		for (ResourceSearcherUnit member : members)
 		{
 			Unit unit = member.getUnit();
 			if (unit != null)
 			{
-				if (digger.assign(unit))
+				if (digger.assign(unit, enemies_count))
 				{
 					member.setUnit(null);
 				}

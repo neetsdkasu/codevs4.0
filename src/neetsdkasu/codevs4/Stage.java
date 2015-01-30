@@ -53,6 +53,10 @@ public class Stage
 	Knights[] knights = new Knights[5];
 	Knights wall_kngiht = null;
 	
+	boolean[][] viewed = new boolean[46][46];
+	List<Position> nonview_position = new ArrayList<>();
+	
+	Map<Position, Integer> enemies_count = new HashMap<>();
 
 	public void setTurnState(TurnState state)
 	{
@@ -66,6 +70,7 @@ public class Stage
 		worker_maker_position.clear();
 		battler_maker_position.clear();
 		requests.clear();
+		enemies_count.clear();
 		
 		if (last_state.turn == 0 || before_state == null)
 		{
@@ -88,6 +93,21 @@ public class Stage
 		castle_worker = null;
 		enemy_castle = null;
 		wall_kngiht = null;
+		
+		for (int i = 0; i < 40; i++)
+		{
+			Arrays.fill(viewed[i], 0, 40 - i, false);
+			Arrays.fill(viewed[i], 40 - i, viewed.length, true);
+		}
+		
+		nonview_position.clear();
+		for (int i = 0; i < 8; i++)
+		{
+			for (int j = 0; j < 8 - i; j++)
+			{
+				nonview_position.add(new Position(i * 5 + 2, j * 5 + 2));
+			}
+		}
 		
 		for (Iterator<Unit> it = last_state.units.keySet().iterator(); it.hasNext(); )
 		{
@@ -125,6 +145,16 @@ public class Stage
 			if (castle_worker != null)
 			{
 				idle_workers.add(castle_worker);
+			}
+		}
+		
+		
+		if (wall_kngiht != null)
+		{
+			wall_kngiht.update(last_state.units);
+			if (wall_kngiht.isDied())
+			{
+				wall_kngiht = null;
 			}
 		}
 		
@@ -173,7 +203,7 @@ public class Stage
 		resource_searcher_manager.update(last_state.units);
 		target_searcher_manager.update(last_state.units);
 		
-		resource_searcher_manager.changeRoll(digger_manager);
+		resource_searcher_manager.changeRoll(digger_manager, enemies_count);
 		
 		digger_manager.getIdelWorkers(idle_workers);
 		
@@ -371,12 +401,91 @@ public class Stage
 		}
 	}
 	
+	void checkView()
+	{
+		if (nonview_position.isEmpty())
+		{
+			return;
+		}
+		
+		Set<Position> positions = new HashSet<>();
+		Position basepoint = new Position(99, 99);
+		
+		for (Unit unit : last_state.units.keySet())
+		{
+			if (basepoint.distance(unit.position) >= 44)
+			{
+				continue;
+			}
+			if (positions.add(unit.position) == false)
+			{
+				continue;
+			}
+			int x = 99 - unit.position.getX();
+			int y = 99 - unit.position.getY();
+			for (int dy = -4; dy <= 4; dy++)
+			{
+				if (y + dy < 0 || y + dy > 45)
+				{
+					continue;
+				}
+				for (int dx = -4; dx <= 4; dx++)
+				{
+					if (x + dx < 0 || x + dx > 45)
+					{
+						continue;
+					}
+					if (Math.abs(dx) + Math.abs(dy) > 4)
+					{
+						continue;
+					}
+					viewed[y + dy][x + dx] = true;
+				}
+			}
+		}
+		
+		outside_loop:
+		for (Iterator<Position> it = nonview_position.iterator(); it.hasNext(); )
+		{
+			Position position = it.next();
+			int x = position.getX();
+			int y = position.getY();
+			for (int dy = -2; dy <= 2; dy++)
+			{
+				for (int dx = -2; dx <= 2; dx++)
+				{
+					if (viewed[y + dy][x + dx] == false)
+					{
+						continue outside_loop;
+					}
+				}
+			}
+			it.remove();
+		}
+		
+	}
+	
 	void compute()
 	{
 		if (last_state.turn == 300)
 		{
 			digger_manager.setLimit(100);
 		}
+		
+		for (Unit unit : last_state.enemies.keySet())
+		{
+			if (enemies_count.containsKey(unit.position))
+			{
+				enemies_count.put(unit.position, enemies_count.get(unit.position) + 1);
+			}
+			else
+			{
+				enemies_count.put(unit.position, Integer.valueOf(1));
+			}
+		}
+		
+		
+		checkView();
 		
 		update();
 		
@@ -408,9 +517,17 @@ public class Stage
 			{
 				if (enemy_castle == null)
 				{
-					if (last_state.turn % 20 == 0)
+					if (last_state.turn % 20 == 0 || knights[i].reached())
 					{
-						knights[i].setTarget(new Position(99 - rand.nextInt(35), 99 - rand.nextInt(35)));
+						if (nonview_position.isEmpty())
+						{
+							knights[i].setTarget(new Position(99 - rand.nextInt(35), 99 - rand.nextInt(35)));
+						}
+						else
+						{
+							Position position = nonview_position.get(((i + 7) * 9) % nonview_position.size());
+							knights[i].setTarget(new Position(99 - position.getY(), 99 - position.getX()));
+						}
 					}
 				}
 				else
