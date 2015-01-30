@@ -50,6 +50,10 @@ public class Stage
 	
 	BattlerUnit[] guardians = new BattlerUnit[4];
 
+	Knights[] knights = new Knights[5];
+	Knights wall_kngiht = null;
+	
+
 	public void setTurnState(TurnState state)
 	{
 		before_state = last_state;
@@ -83,6 +87,7 @@ public class Stage
 		before_state = null;
 		castle_worker = null;
 		enemy_castle = null;
+		wall_kngiht = null;
 		
 		for (Iterator<Unit> it = last_state.units.keySet().iterator(); it.hasNext(); )
 		{
@@ -103,6 +108,13 @@ public class Stage
 		guardians[1] = new BattlerUnit(castle.position.move(0, 1), 10);
 		guardians[2] = new BattlerUnit(castle.position.move(-1, 0), 10);
 		guardians[3] = new BattlerUnit(castle.position.move(0, -1), 10);
+		
+		for (int i = 0; i < knights.length; i++)
+		{
+			knights[i] = new Knights();
+			knights[i].setTarget(castle.position);
+		}
+		
 	}
 	
 	void update()
@@ -211,6 +223,16 @@ public class Stage
 				attackers.add(battler);
 			}
 		}
+		
+		for (int i = 0; i < knights.length; i++)
+		{
+			knights[i].update(last_state.units);
+			if (knights[i].isDied())
+			{
+				knights[i] = new Knights();
+				knights[i].setTarget(castle.position);
+			}
+		}
 	}
 
 	
@@ -226,7 +248,7 @@ public class Stage
 				}
 			});
 		}
-		if (last_state.turn < 150 && battler_makers.size() < 1)
+		if (last_state.turn < 150 && battler_makers.size() < 3)
 		{
 			requests.add(new Request(castle.position, true, Type.BASE, 0){
 				@Override
@@ -250,17 +272,27 @@ public class Stage
 		
 		if (last_state.turn > 100)
 		{
-			target_searcher_manager.getRequests(requests, battler_maker_position);
+			//target_searcher_manager.getRequests(requests, battler_maker_position);
 			
 			for (BattlerUnit unit : guardians)
 			{
-				unit.getRequests(requests, battler_maker_position);
+				//unit.getRequests(requests, battler_maker_position);
 			}
 			
 			for (BattlerUnit unit : attackers)
 			{
-				unit.getRequests(requests, battler_maker_position);
+				//unit.getRequests(requests, battler_maker_position);
 			}
+		}
+		
+		for (int i = 0; i < knights.length; i++)
+		{
+			if (knights[i].fully())
+			{
+				continue;
+			}
+			knights[i].getRequests(requests, battler_maker_position);
+			break;
 		}
 		
 		Collections.sort(requests);
@@ -369,7 +401,45 @@ public class Stage
 		{
 			unit.compute(action_units);
 		}
-
+		
+		for (int i = 0; i < knights.length; i++)
+		{
+			if (knights[i].fully())
+			{
+				if (enemy_castle == null)
+				{
+					if (last_state.turn % 20 == 0)
+					{
+						knights[i].setTarget(new Position(99 - rand.nextInt(35), 99 - rand.nextInt(35)));
+					}
+				}
+				else
+				{
+					if (enemy_castle.position.equals(knights[i].getTarget()) == false)
+					{
+						knights[i].setTarget(enemy_castle.position);
+						//knights[i].maxattack();
+					}
+				}
+				if (i == 2)
+				{
+					if (wall_kngiht == null || wall_kngiht.isDied())
+					{
+						wall_kngiht = knights[i];
+						for (int j = i + 1; j < knights.length; j++)
+						{
+							knights[j - 1] = knights[j];
+						}
+						knights[knights.length - 1] = new Knights();
+						knights[knights.length - 1].setTarget(castle.position);
+						i--;
+						continue;
+					}
+				}
+			}
+			knights[i].compute(action_units);
+		}
+		
 	}
 	
 }

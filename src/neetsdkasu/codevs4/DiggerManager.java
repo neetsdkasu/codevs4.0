@@ -146,7 +146,7 @@ public class DiggerManager
 						}
 					});
 				}
-				else if (prime.get(position).intValue() < 3)
+				else if (prime.get(position).intValue() < 0)
 				{
 					requests.add(new Request(position, true, Type.BASE, 10){
 						@Override
