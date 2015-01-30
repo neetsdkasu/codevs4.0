@@ -18,9 +18,9 @@ public class TurnState
 	public int turn = 0;
 	public int resource_count = 0;
 	public int unit_count = 0;
-	public HashMap<Unit, Unit> units = new HashMap<>();
+	public Map<Unit, Unit> units = new HashMap<>();
 	public int enemy_count = 0;
-	public HashMap<Unit, Unit> enemies = new HashMap<>();
+	public Map<Unit, Unit> enemies = new HashMap<>();
 	public int resource_position_count = 0;
-	public HashMap<Position, Position> resource_positions = new HashMap<>();
+	public List<Position> resource_positions = new ArrayList<>();
 }

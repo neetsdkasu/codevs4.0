@@ -93,7 +93,7 @@ public class AI
 		for (int i = 0; i < state.resource_position_count; i++)
 		{
 			Position position = new Position(in.nextInt(), in.nextInt(), true);
-			state.resource_positions.put(position, position);
+			state.resource_positions.add(position);
 		}
 		
 		in.next();

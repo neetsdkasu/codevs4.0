@@ -61,9 +61,11 @@ public class Position
 		return (calc_mirror || !isMirror()) ? y : 99 - y;
 	}
 	
-	public Position move(int dx, int dy)
+	public Position move(int dy, int dx)
 	{
-		return new Position(getX() + dx, getY() + dy);
+		int tx = Math.max(Math.min(getX() + dx, 99), 0);
+		int ty = Math.max(Math.min(getY() + dy, 99), 0);
+		return new Position(ty, tx);
 	}
 	
 	public int distance(Position other)

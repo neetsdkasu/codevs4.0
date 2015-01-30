@@ -60,18 +60,23 @@ public class Unit
 		return id + " " + getCommandChar();
 	}
 	
-	public void moveTo(Position to)
+	public boolean moveTo(Position to)
 	{
 		int diffX = to.getX() - position.getX();
 		int diffY = to.getY() - position.getY();
-		if (Math.abs(diffX) < Math.abs(diffY))
+		if (diffY != 0)
 		{
 			command = (diffY < 0) ? Command.UP : Command.DOWN;
 		}
-		else
+		else if (diffX != 0)
 		{
 			command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
 		}
+		else
+		{
+			return false;
+		}
+		return true;
 	}
 	
 	@Override

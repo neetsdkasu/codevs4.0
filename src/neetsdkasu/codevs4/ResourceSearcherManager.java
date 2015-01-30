@@ -32,14 +32,37 @@ public class ResourceSearcherManager
 		}
 	}
 	
-	public void update(HashMap<Unit, Unit> units)
+	public void update(Map<Unit, Unit> units)
 	{
 		for (ResourceSearcherUnit member : members)
 		{
 			Unit unit = member.getUnit();
 			if (unit != null)
 			{
-				member.setUnit(units.remove(unit));
+				if (member.getPriority() < 0)
+				{
+					member.setUnit(null);
+				}
+				else
+				{
+					member.setUnit(units.remove(unit));
+				}
+			}
+		}
+	}
+	
+		
+	public void changeRoll(DiggerManager digger)
+	{
+		for (ResourceSearcherUnit member : members)
+		{
+			Unit unit = member.getUnit();
+			if (unit != null)
+			{
+				if (digger.assign(unit))
+				{
+					member.setUnit(null);
+				}
 			}
 		}
 	}
@@ -65,6 +88,7 @@ public class ResourceSearcherManager
 				if (position.distance(current) < distance);
 				{
 					target = position;
+					distance = position.distance(current);
 				}
 			}
 			if (target != null)
