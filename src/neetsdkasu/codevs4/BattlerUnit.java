@@ -29,11 +29,11 @@ public class BattlerUnit
 		this.target = target;
 	}
 	
-	public void update(Map<Unit, Unit> units)
+	public boolean update(Map<Unit, Unit> units)
 	{
 		if (members.size() == 0)
 		{
-			return;
+			return false;
 		}
 		List<Unit> list = new ArrayList<>();
 		for (Unit unit : members)
@@ -44,6 +44,24 @@ public class BattlerUnit
 			}
 		}
 		members = list;
+		return members.size() > 0;
+	}
+	
+	public void assign(Unit unit)
+	{
+		members.add(unit);
+		member_count--;
+	}
+	
+	public boolean weak()
+	{
+		int border = max_count * 2500;
+		int count = 0;
+		for (Unit unit : members)
+		{
+			count += unit.hp;
+		}
+		return count <= border;
 	}
 	
 	public void getRequests(List<Request> requests, Set<Position> battler_maker_position)
@@ -61,6 +79,10 @@ public class BattlerUnit
 		}
 	}
 	
+	public boolean isDied()
+	{
+		return members.size() == 0 && member_count == 0;
+	}
 	
 	public void compute(Set<Unit> action_units)
 	{

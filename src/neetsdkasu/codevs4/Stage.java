@@ -27,17 +27,21 @@ public class Stage
 	
 	Set<Unit> action_units = new HashSet<>();
 	
+	TargetSearcherManager target_searcher_manager = new TargetSearcherManager();
 	ResourceSearcherManager resource_searcher_manager = new ResourceSearcherManager();
 	DiggerManager digger_manager = new DiggerManager();
 	
 	Unit castle = null;
 	Unit castle_worker = null;
+	Unit enemy_castle = null;
 	
 	Set<Position> worker_maker_position = new HashSet<>();
 	Set<Position> battler_maker_position = new HashSet<>();
 	List<Unit> worker_makers = new ArrayList<>();
 	List<Unit> battler_makers = new ArrayList<>();
 	List<Unit> idle_workers = new ArrayList<>();
+	
+	List<BattlerUnit> attackers = new ArrayList<>();
 	
 	List<Request> requests = new ArrayList<>();
 	
@@ -73,6 +77,8 @@ public class Stage
 	{
 		before_state = null;
 		castle_worker = null;
+		enemy_castle = null;
+		
 		for (Iterator<Unit> it = last_state.units.keySet().iterator(); it.hasNext(); )
 		{
 			Unit unit = last_state.units.get(it.next());
@@ -85,6 +91,8 @@ public class Stage
 		}
 		digger_manager.reset();
 		resource_searcher_manager.reset(castle.position);
+		target_searcher_manager.reset(castle.position);
+		attackers.clear();
 
 		guardians[0] = new BattlerUnit(castle.position.move(1, 0), 10);
 		guardians[1] = new BattlerUnit(castle.position.move(0, 1), 10);
@@ -103,6 +111,22 @@ public class Stage
 			}
 		}
 		
+		if (enemy_castle == null)
+		{
+			for (Unit unit : last_state.enemies.keySet())
+			{
+				if (unit.type == Type.CASTLE)
+				{
+					enemy_castle = unit;
+					for (BattlerUnit battler : attackers)
+					{
+						battler.setTarget(enemy_castle.position);
+					}
+					target_searcher_manager.changeRoll(attackers, enemy_castle.position);
+					break;
+				}
+			}
+		}
 		
 		digger_manager.setResourcePosition(last_state.resource_positions);
 		
@@ -130,14 +154,41 @@ public class Stage
 		
 		digger_manager.update(last_state.units);
 		resource_searcher_manager.update(last_state.units);
+		target_searcher_manager.update(last_state.units);
 		
 		resource_searcher_manager.changeRoll(digger_manager);
 		
-		for (BattlerUnit unit : guardians)
+		for (int i = 0; i < guardians.length; i++)
 		{
-			unit.update(last_state.units);
+			guardians[i].update(last_state.units);
+			if (guardians[i].weak())
+			{
+				guardians[i] = new BattlerUnit(guardians[i].start, 10);
+			}
 		}
 
+		for (Iterator<BattlerUnit> it = attackers.iterator(); it.hasNext(); )
+		{
+			BattlerUnit battler = it.next();
+			battler.update(last_state.units);
+			if (battler.isDied())
+			{
+				it.remove();
+			}
+		}
+		
+		if (last_state.turn > 120)
+		{
+			if (attackers.size() < 10)
+			{
+				BattlerUnit battler = new BattlerUnit(castle.position, 6);
+				if (enemy_castle != null)
+				{
+					battler.setTarget(enemy_castle.position);
+				}
+				attackers.add(battler);
+			}
+		}
 	}
 
 	
@@ -168,7 +219,14 @@ public class Stage
 		
 		if (last_state.turn > 100)
 		{
+			target_searcher_manager.getRequests(requests, battler_maker_position);
+			
 			for (BattlerUnit unit : guardians)
+			{
+				unit.getRequests(requests, battler_maker_position);
+			}
+			
+			for (BattlerUnit unit : attackers)
 			{
 				unit.getRequests(requests, battler_maker_position);
 			}
@@ -261,6 +319,7 @@ public class Stage
 		
 		resource_searcher_manager.compute(action_units);
 		digger_manager.compute(action_units);
+		target_searcher_manager.compute(action_units);
 		
 		if (castle_worker != null && castle_worker.moveTo(castle.position))
 		{
@@ -271,6 +330,12 @@ public class Stage
 		{
 			unit.compute(action_units);
 		}
+
+		for (BattlerUnit unit : attackers)
+		{
+			unit.compute(action_units);
+		}
+
 	}
 	
 }
