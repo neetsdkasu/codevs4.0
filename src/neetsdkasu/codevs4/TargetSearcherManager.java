@@ -26,23 +26,30 @@ public class TargetSearcherManager
 		}
 	}
 	
-	public void changeRoll(List<BattlerUnit> attackers, Position target)
+	public BattlerUnit changeRoll(List<BattlerUnit> attackers, Position target)
 	{
 		if (searching)
 		{
-			BattlerUnit battler = new BattlerUnit(target, members.length);
+			BattlerUnit battler = new BattlerUnit(target, 1);
 			for (TargetSearcherUnit member : members)
 			{
+				if (member.getPriority() >= 0)
+				{
+					continue;
+				}
 				Unit unit = member.getUnit();
 				if (unit != null)
 				{
 					member.setUnit(null);
 					battler.assign(unit);
+					break;
 				}
 			}
 			attackers.add(battler);
 			searching = false;
+			return battler;
 		}
+		return null;
 	}
 	
 	public void reset(Position castle)

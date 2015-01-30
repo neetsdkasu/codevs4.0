@@ -57,7 +57,9 @@ public class Stage
 	List<Position> nonview_position = new ArrayList<>();
 	
 	Map<Position, Integer> enemies_count = new HashMap<>();
-
+	
+	Map<Position, BattlerUnit> attack_point = new HashMap<>();
+	
 	public void setTurnState(TurnState state)
 	{
 		before_state = last_state;
@@ -88,6 +90,8 @@ public class Stage
 	void nextStage()
 	{
 		rand.setSeed(rand.nextLong());
+		
+		attack_point.clear();
 		
 		before_state = null;
 		castle_worker = null;
@@ -167,12 +171,25 @@ public class Stage
 					enemy_castle = unit;
 					for (BattlerUnit battler : attackers)
 					{
-						battler.setTarget(enemy_castle.position);
+						//battler.setTarget(enemy_castle.position);
 					}
-					target_searcher_manager.changeRoll(attackers, enemy_castle.position);
+					//target_searcher_manager.changeRoll(attackers, enemy_castle.position);
 					break;
 				}
 			}
+		}
+		
+		for (Position position : last_state.resource_positions)
+		{
+			if (attack_point.containsKey(position))
+			{
+				continue;
+			}
+			if (position.getX() + position.getY() < 100)
+			{
+				continue;
+			}
+			attack_point.put(position, null);
 		}
 		
 		digger_manager.setResourcePosition(last_state.resource_positions);
@@ -203,6 +220,7 @@ public class Stage
 		resource_searcher_manager.update(last_state.units);
 		target_searcher_manager.update(last_state.units);
 		
+		
 		resource_searcher_manager.changeRoll(digger_manager, enemies_count);
 		
 		digger_manager.getIdelWorkers(idle_workers);
@@ -223,6 +241,10 @@ public class Stage
 			battler.update(last_state.units);
 			if (battler.isDied())
 			{
+				if (battler.equals(attack_point.get(battler.getTarget())))
+				{
+					attack_point.put(battler.getTarget(), null);
+				}
 				it.remove();
 			}
 			else
@@ -231,17 +253,37 @@ public class Stage
 				{
 					if (last_state.turn % 30 == 0)
 					{
-						battler.setTarget(new Position(99 - rand.nextInt(30), 99 - rand.nextInt(30)));
+						//battler.setTarget(new Position(99 - rand.nextInt(30), 99 - rand.nextInt(30)));
+					}
+				}
+				if (attack_point.containsKey(battler.getTarget()) == false)
+				{
+					for (Position position : attack_point.keySet())
+					{
+						if (attack_point.get(position) == null)
+						{
+							battler.setTarget(position);
+							attack_point.put(position, battler);
+							break;
+						}
 					}
 				}
 			}
 		}
 		
+		for (Position position : attack_point.keySet())
+		{
+			if (attack_point.get(position) == null)
+			{
+				attack_point.put(position, target_searcher_manager.changeRoll(attackers, position));
+			}
+		}
+		
 		if (last_state.turn > 120)
 		{
-			if (attackers.size() < 10)
+			if (attackers.size() < 4)
 			{
-				BattlerUnit battler = new BattlerUnit(castle.position, 10);
+				BattlerUnit battler = new BattlerUnit(castle.position, 1);
 				if (enemy_castle != null)
 				{
 					battler.setTarget(enemy_castle.position);
@@ -249,6 +291,18 @@ public class Stage
 				else
 				{
 					battler.setTarget(new Position(99 - rand.nextInt(30), 99 - rand.nextInt(30)));
+				}
+				for (Position position : digger_manager.getResourcePositions())
+				{
+					if (position.getX() + position.getY() > 99)
+					{
+						if (attack_point.get(position) == null)
+						{
+							battler.setTarget(position);
+							attack_point.put(position, battler);
+							break;
+						}
+					}
 				}
 				attackers.add(battler);
 			}
@@ -302,7 +356,7 @@ public class Stage
 		
 		if (last_state.turn > 100)
 		{
-			//target_searcher_manager.getRequests(requests, battler_maker_position);
+			target_searcher_manager.getRequests(requests, battler_maker_position);
 			
 			for (BattlerUnit unit : guardians)
 			{
@@ -311,7 +365,7 @@ public class Stage
 			
 			for (BattlerUnit unit : attackers)
 			{
-				//unit.getRequests(requests, battler_maker_position);
+				unit.getRequests(requests, battler_maker_position);
 			}
 		}
 		

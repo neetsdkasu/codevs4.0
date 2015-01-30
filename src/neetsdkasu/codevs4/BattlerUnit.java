@@ -36,6 +36,11 @@ public class BattlerUnit
 	{
 		this(start, member_count, Type.ASSASSIN, 0);
 	}
+	
+	public Position getTarget()
+	{
+		return target;
+	}
 
 	
 	public void setTarget(Position target)

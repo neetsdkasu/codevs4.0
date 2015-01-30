@@ -45,6 +45,11 @@ public class DiggerManager
 		}
 	}
 	
+	public Set<Position> getResourcePositions()
+	{
+		return members.keySet();
+	}
+	
 	public boolean assign(Unit unit, Map<Position, Integer> enemies_count)
 	{
 		if (member_count >= limit)
@@ -105,7 +110,8 @@ public class DiggerManager
 				guardians.get(position).update(units);
 				if (guardians.get(position).weak())
 				{
-					guardians.put(position, new BattlerUnit(position, 8, Type.KNIGHT, 10));
+					int p = (position.getX() + position.getY() < 99) ? 0 : 10;
+					guardians.put(position, new BattlerUnit(position, 5, Type.KNIGHT, p));
 				}
 			}
 		}
@@ -134,13 +140,14 @@ public class DiggerManager
 			List<Unit> list = members.get(position);
 			if (guardians.get(position) == null)
 			{
-				guardians.put(position, new BattlerUnit(position, 5, Type.KNIGHT, 10));
+				int p = (position.getX() + position.getY() < 99) ? 0 : 10;
+				guardians.put(position, new BattlerUnit(position, 5, Type.KNIGHT, p));
 			}
 			guardians.get(position).getRequests(requests, worker_maker_position);
 			if (list.size() >= 5)
 			{
 
-				if (prime.get(position).intValue() < 2)
+				if (prime.get(position).intValue() < 1)
 				{
 					requests.add(new Request(position, true, Type.VILLAGE, 10){
 						@Override
