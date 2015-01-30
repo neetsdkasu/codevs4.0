@@ -64,20 +64,48 @@ public class Unit
 	{
 		int diffX = to.getX() - position.getX();
 		int diffY = to.getY() - position.getY();
-		if (diffY != 0)
+		if (diffY == 0 && diffX == 0)
+		{
+			return false;
+		}
+		else if (diffY == 0)
+		{
+			command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
+		}
+		else if (diffX == 0)
 		{
 			command = (diffY < 0) ? Command.UP : Command.DOWN;
+		}
+		else if (Math.abs(diffY) > Math.abs(diffX))
+		{
+			command = (diffY < 0) ? Command.UP : Command.DOWN;
+		}
+		else
+		{
+			command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
+		}
+		return true;
+	}
+	
+	public boolean moveTo2(Position to)
+	{
+		int diffX = to.getX() - position.getX();
+		int diffY = to.getY() - position.getY();
+		if (diffY == 0 && diffX == 0)
+		{
+			return false;
 		}
 		else if (diffX != 0)
 		{
 			command = (diffX < 0) ? Command.LEFT : Command.RIGHT;
 		}
-		else
+		else if (diffY != 0)
 		{
-			return false;
+			command = (diffY < 0) ? Command.UP : Command.DOWN;
 		}
 		return true;
 	}
+
 	
 	@Override
 	public int hashCode()

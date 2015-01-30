@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Random;
 
 import neetsdkasu.codevs4.*;
 
@@ -24,6 +25,8 @@ public class Stage
 	
 	TurnState before_state = null;
 	TurnState last_state = null;
+	
+	Random rand = new Random();
 	
 	Set<Unit> action_units = new HashSet<>();
 	
@@ -75,6 +78,8 @@ public class Stage
 	
 	void nextStage()
 	{
+		rand.setSeed(rand.nextLong());
+		
 		before_state = null;
 		castle_worker = null;
 		enemy_castle = null;
@@ -158,6 +163,9 @@ public class Stage
 		
 		resource_searcher_manager.changeRoll(digger_manager);
 		
+		digger_manager.getIdelWorkers(idle_workers);
+		
+		
 		for (int i = 0; i < guardians.length; i++)
 		{
 			guardians[i].update(last_state.units);
@@ -175,16 +183,30 @@ public class Stage
 			{
 				it.remove();
 			}
+			else
+			{
+				if (enemy_castle == null)
+				{
+					if (last_state.turn % 30 == 0)
+					{
+						battler.setTarget(new Position(99 - rand.nextInt(30), 99 - rand.nextInt(30)));
+					}
+				}
+			}
 		}
 		
 		if (last_state.turn > 120)
 		{
 			if (attackers.size() < 10)
 			{
-				BattlerUnit battler = new BattlerUnit(castle.position, 6);
+				BattlerUnit battler = new BattlerUnit(castle.position, 10);
 				if (enemy_castle != null)
 				{
 					battler.setTarget(enemy_castle.position);
+				}
+				else
+				{
+					battler.setTarget(new Position(99 - rand.nextInt(30), 99 - rand.nextInt(30)));
 				}
 				attackers.add(battler);
 			}
@@ -204,7 +226,16 @@ public class Stage
 				}
 			});
 		}
-		if (last_state.turn < 150 && battler_makers.size() < 2)
+		if (last_state.turn < 150 && battler_makers.size() < 1)
+		{
+			requests.add(new Request(castle.position, true, Type.BASE, 0){
+				@Override
+				public void assign(Unit unit)
+				{
+				}
+			});
+		}
+		if (last_state.turn > 200 && battler_makers.size() < 3)
 		{
 			requests.add(new Request(castle.position, true, Type.BASE, 0){
 				@Override
@@ -281,6 +312,10 @@ public class Stage
 				}
 				break;
 			case VILLAGE:
+				if (worker_makers.size() > 2 || last_state.turn < 150)
+				{
+					break;
+				}
 			case BASE:
 				if (last_state.resource_count < COMMAND_COSTS[request.type.ordinal()])
 				{
@@ -289,7 +324,6 @@ public class Stage
 				for (Iterator<Unit> it = idle_workers.iterator(); it.hasNext(); )
 				{
 					Unit unit = it.next();
-					System.err.println(unit.getAction());
 					if (request.must_be && !request.position.equals(unit.position))
 					{
 						continue;
@@ -307,7 +341,7 @@ public class Stage
 	
 	void compute()
 	{
-		if (last_state.turn == 200)
+		if (last_state.turn == 300)
 		{
 			digger_manager.setLimit(100);
 		}

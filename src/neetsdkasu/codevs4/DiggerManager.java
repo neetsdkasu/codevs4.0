@@ -14,7 +14,8 @@ import neetsdkasu.codevs4.*;
 public class DiggerManager
 {
 	Map<Position, List<Unit>> members = new HashMap<>();
-	Map<Position, Unit> guardians = new HashMap<>();
+	Map<Position, BattlerUnit> guardians = new HashMap<>();
+	Map<Position, Integer> prime = new HashMap<>();
 	int member_count = 0;
 	int limit = 0;
 	
@@ -22,6 +23,7 @@ public class DiggerManager
 	{
 		guardians.clear();
 		members.clear();
+		prime.clear();
 		member_count = 0;
 		limit = 50;
 	}
@@ -38,6 +40,7 @@ public class DiggerManager
 			if (members.containsKey(position) == false)
 			{
 				members.put(position, new ArrayList<Unit>());
+				prime.put(position, Integer.valueOf(prime.size()));
 			}
 		}
 	}
@@ -63,7 +66,7 @@ public class DiggerManager
 				distance = position.distance(unit.position);
 			}
 		}
-		if (target != null)
+		if (target != null && distance < 10)
 		{
 			target.add(unit);
 			member_count++;
@@ -93,11 +96,29 @@ public class DiggerManager
 		}
 		for (Position position : guardians.keySet())
 		{
-			Unit unit = guardians.get(position);
-			if (unit != null)
+			if (guardians.get(position) != null)
 			{
-				guardians.put(position, units.remove(unit));
+				guardians.get(position).update(units);
+				if (guardians.get(position).weak())
+				{
+					guardians.put(position, new BattlerUnit(position, 8, Type.KNIGHT, 10));
+				}
 			}
+		}
+	}
+	
+	public void getIdelWorkers(List<Unit> idle_workers)
+	{
+		for (Position position : members.keySet())
+		{
+			for (Unit unit : members.get(position))
+			{
+				if (position.equals(unit.position))
+				{
+					idle_workers.add(unit);
+				}
+			}
+			
 		}
 	}
 	
@@ -107,15 +128,31 @@ public class DiggerManager
 		for (Position position : members.keySet())
 		{
 			List<Unit> list = members.get(position);
+			if (guardians.get(position) == null)
+			{
+				guardians.put(position, new BattlerUnit(position, 5, Type.KNIGHT, 10));
+			}
+			guardians.get(position).getRequests(requests, worker_maker_position);
 			if (list.size() >= 5)
 			{
-				if (guardians.get(position) == null)
+
+				if (prime.get(position).intValue() < 2)
 				{
-					requests.add(new Request(position, false, Type.ASSASSIN, 10){
+					requests.add(new Request(position, true, Type.VILLAGE, 10){
 						@Override
 						public void assign(Unit unit)
 						{
-							guardians.put(position, unit);
+							prime.put(position, Integer.valueOf(10));
+						}
+					});
+				}
+				else if (prime.get(position).intValue() < 3)
+				{
+					requests.add(new Request(position, true, Type.BASE, 10){
+						@Override
+						public void assign(Unit unit)
+						{
+							prime.put(position, Integer.valueOf(10));
 						}
 					});
 				}
@@ -164,14 +201,7 @@ public class DiggerManager
 		}
 		for (Position position : guardians.keySet())
 		{
-			Unit unit = guardians.get(position);
-			if (unit != null)
-			{
-				if (unit.moveTo(position))
-				{
-					action_units.add(unit);
-				}
-			}
+			guardians.get(position).compute(action_units);
 		}
 	}
 }
