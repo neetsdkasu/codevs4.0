@@ -60,6 +60,7 @@ public class Stage
 	
 	Map<Position, BattlerUnit> attack_point = new HashMap<>();
 	
+	
 	public void setTurnState(TurnState state)
 	{
 		before_state = last_state;
@@ -223,7 +224,10 @@ public class Stage
 		
 		resource_searcher_manager.changeRoll(digger_manager, enemies_count);
 		
-		digger_manager.getIdelWorkers(idle_workers);
+		if (last_state.turn > 55)
+		{
+			digger_manager.getIdelWorkers(idle_workers);
+		}
 		
 		
 		for (int i = 0; i < guardians.length; i++)
@@ -322,7 +326,7 @@ public class Stage
 	
 	void getRequests()
 	{
-		if (castle_worker == null)
+		if (castle_worker == null) // kyosei
 		{
 			requests.add(new Request(castle.position, true, Type.WORKER, 0){
 				@Override
@@ -332,7 +336,7 @@ public class Stage
 				}
 			});
 		}
-		if (last_state.turn < 150 && battler_makers.size() < 3)
+		if (last_state.turn < 150 && battler_makers.size() < 0)
 		{
 			requests.add(new Request(castle.position, true, Type.BASE, 0){
 				@Override
@@ -341,7 +345,7 @@ public class Stage
 				}
 			});
 		}
-		if (last_state.turn > 200 && battler_makers.size() < 3)
+		if (last_state.turn > 40 && battler_makers.size() < 2)
 		{
 			requests.add(new Request(castle.position, true, Type.BASE, 0){
 				@Override
@@ -350,13 +354,23 @@ public class Stage
 				}
 			});
 		}
+		if (last_state.turn > 40)
+		{
+			requests.add(new Request(castle.position, false, Type.KNIGHT, 0){
+				@Override
+				public void assign(Unit unit)
+				{
+				}
+			});
+		}
+
 		
 		digger_manager.getRequests(requests, worker_maker_position);
 		resource_searcher_manager.getRequests(requests, worker_maker_position);
 		
 		if (last_state.turn > 100)
 		{
-			target_searcher_manager.getRequests(requests, battler_maker_position);
+			//target_searcher_manager.getRequests(requests, battler_maker_position);
 			
 			for (BattlerUnit unit : guardians)
 			{
@@ -365,7 +379,7 @@ public class Stage
 			
 			for (BattlerUnit unit : attackers)
 			{
-				unit.getRequests(requests, battler_maker_position);
+				//unit.getRequests(requests, battler_maker_position);
 			}
 		}
 		
@@ -375,7 +389,7 @@ public class Stage
 			{
 				continue;
 			}
-			knights[i].getRequests(requests, battler_maker_position);
+			//knights[i].getRequests(requests, battler_maker_position);
 			break;
 		}
 		
@@ -390,9 +404,6 @@ public class Stage
 			switch (request.type)
 			{
 			case WORKER:
-			case KNIGHT:
-			case FIGHTER:
-			case ASSASSIN:
 				for (Iterator<Unit> it = last_state.units.keySet().iterator(); it.hasNext(); )
 				{
 					Unit key = it.next();
@@ -408,6 +419,13 @@ public class Stage
 					it.remove();
 					continue request_loop;
 				}
+				if (last_state.turn < 55)
+				{
+					break;
+				}
+			case KNIGHT:
+			case FIGHTER:
+			case ASSASSIN:
 				if (last_state.resource_count < COMMAND_COSTS[request.type.ordinal()])
 				{
 					continue request_loop;
@@ -550,9 +568,51 @@ public class Stage
 		digger_manager.compute(action_units);
 		target_searcher_manager.compute(action_units);
 		
-		if (castle_worker != null && castle_worker.moveTo(castle.position))
+			
+		if (castle_worker != null && castle_worker.moveTo(new Position(99, 99)))
 		{
+			if (last_state.resource_count >= 500)
+			{
+				castle_worker.command = Command.BASE;
+			}
 			action_units.add(castle_worker);
+		}
+		
+		int n = 0;
+		for (Unit unit : last_state.units.keySet())
+		{
+			Position target;
+			if (enemy_castle != null)
+			{
+				target = enemy_castle.position;
+			}
+			else if ((target = nonview_position.get(n)) != null)
+			{
+				target = new Position(99 - target.getY(), 99 - target.getX());
+			}
+			else
+			{
+				target = new Position(99 - rand.nextInt(35), 99 - rand.nextInt(35));
+			}
+			if (n % 2 == 0)
+			{
+				if (unit.moveTo(target))
+				{
+					action_units.add(unit);
+				}
+			}
+			else
+			{
+				if (unit.moveTo2(target))
+				{
+					action_units.add(unit);
+				}
+			}
+			n++;
+			if (nonview_position.size() > 0)
+			{
+				n %= nonview_position.size();
+			}
 		}
 		
 		for (BattlerUnit unit : guardians)
